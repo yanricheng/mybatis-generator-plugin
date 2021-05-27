@@ -214,6 +214,17 @@ public class GenerateRepositoryPlugin extends BasePlugin {
             dtoImplPackage = basePackage + "." + defaultDtoSubPackage;
             convertPackage = basePackage + "." + defaultConvertSubPackage;
             controllerPackage = basePackage + "." + defaultControllerSubPackage;
+
+            new File(repositoryPackage).mkdirs();
+            new File(repositoryImplPackage).mkdirs();
+            new File(builderPackage).mkdirs();
+            new File(servicePackage).mkdirs();
+            new File(serviceImplPackage).mkdirs();
+            new File(facadePackage).mkdirs();
+            new File(facadeImplPackage).mkdirs();
+            new File(dtoImplPackage).mkdirs();
+            new File(convertPackage).mkdirs();
+            new File(controllerPackage).mkdirs();
         }
 
 
