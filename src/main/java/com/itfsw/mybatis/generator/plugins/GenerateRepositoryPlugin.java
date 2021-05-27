@@ -37,8 +37,11 @@ public class GenerateRepositoryPlugin extends BasePlugin {
     private static final Map<String, Class<?>> namePrimitiveMap = new HashMap<>();
     private static final String PARENT_BUILDER = "parentBuilder";
     private static final String PARENT_CONVERT = "parentConvert";
+    private static final String PARENT_CONTROLLER = "parentController";
+
     private static final String BASE_PACKAGE = "basePackage";
     private static final String BASE_DIR = "baseDir";
+
     private static final String DO = "DO";
     private static final String DTO = "DTO";
     private static final String INSERT = "insert";
@@ -57,8 +60,11 @@ public class GenerateRepositoryPlugin extends BasePlugin {
     private static final String defaultFacadeImplSubPackage = "facade.impl";
     private static final String defaultServiceSubPackage = "biz.service";
     private static final String defaultServiceImplSubPackage = "biz.service.impl";
+    private static final String defaultControllerSubPackage = "web.controller";
     private static final String BUILDER_SUBFIX = "Builder";
     private static final String CONVERT_SUBFIX = "Convert";
+    private static final String CONTROLLER_SUBFIX = "Controller";
+    private static final String MAPPER_SUBFIX = "Mapper";
     private static String basePackage = null;
     private static String baseDir = null;
     private static String repositoryPackage = null;
@@ -71,6 +77,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
     private static String facadeImplPackage = null;
     private static String dtoImplPackage = null;
     private static String convertPackage = null;
+    private static String controllerPackage = null;
     private static JavaFormatter javaFormatter = null;
 
     static {
@@ -126,6 +133,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
         domainClazz.getImportedTypes().addAll(dataObjClazz.getImportedTypes());
         domainClazz.getFields().addAll(dataObjClazz.getFields());
         domainClazz.getMethods().addAll(dataObjClazz.getMethods());
+        domainClazz.getAnnotations().addAll(dataObjClazz.getAnnotations());
         //------------------
 
         GeneratedJavaFile domainJavaFile = new GeneratedJavaFile(domainClazz, baseDir, javaFormatter);
@@ -182,6 +190,10 @@ public class GenerateRepositoryPlugin extends BasePlugin {
         Object parentConvertConf = this.getProperties().get(PARENT_CONVERT);
         String parentConvertClass = parentConvertConf != null ? parentConvertConf.toString() : "";
 
+
+        Object parentControllerConf = this.getProperties().get(PARENT_CONTROLLER);
+        String parentControllerClass = parentControllerConf != null ? parentControllerConf.toString() : "";
+
         if (basePackage == null) {
             basePackage = context.getProperty(BASE_PACKAGE);
             if (basePackage == null) {
@@ -201,6 +213,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
             facadeImplPackage = basePackage + "." + defaultFacadeImplSubPackage;
             dtoImplPackage = basePackage + "." + defaultDtoSubPackage;
             convertPackage = basePackage + "." + defaultConvertSubPackage;
+            controllerPackage = basePackage + "." + defaultControllerSubPackage;
         }
 
 
@@ -228,10 +241,10 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 files.add(converterJavaFile);
 
 
-            } else if (simpleClassName.endsWith("Mapper")) {
+            } else if (simpleClassName.endsWith(MAPPER_SUBFIX)) {
                 //############
                 //----------- 生成Repository
-                String repositoryInterfaceFullyName = String.format("%s.%s", repositoryPackage, simpleClassName.replace("Mapper", "Repository"));
+                String repositoryInterfaceFullyName = String.format("%s.%s", repositoryPackage, simpleClassName.replace(MAPPER_SUBFIX, "Repository"));
                 //定义接口
                 Interface repositoryInterface = new Interface(repositoryInterfaceFullyName);
                 setCommonInfo(repositoryInterface, repositoryInterfaceFullyName);
@@ -279,7 +292,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
 
                 //-----------
                 //----------- 生成Repository impl
-                String repositoryClassFullyName = String.format("%s.%s", repositoryImplPackage, simpleClassName.replace("Mapper", "RepositoryImpl"));
+                String repositoryClassFullyName = String.format("%s.%s", repositoryImplPackage, simpleClassName.replace(MAPPER_SUBFIX, "RepositoryImpl"));
                 //定义实现
                 TopLevelClass repositoryImplClazz = new TopLevelClass(repositoryClassFullyName);
                 //添加注释
@@ -298,7 +311,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 commentGenerator.addFieldComment(mapperField, introspectedTable);
                 repositoryImplClazz.addField(mapperField);
                 //----- Autowired builder
-                String builderClassName = simpleClassName.replace("Mapper", "") + "Builder";
+                String builderClassName = simpleClassName.replace(MAPPER_SUBFIX, "") + "Builder";
                 FullyQualifiedJavaType builderFullClass = new FullyQualifiedJavaType(String.format("%s.%s", builderPackage, builderClassName));
                 repositoryImplClazz.addImportedType(builderFullClass);
                 String bulderBeanName = FieldUtil.firstLower(builderClassName);
@@ -351,12 +364,12 @@ public class GenerateRepositoryPlugin extends BasePlugin {
 
                 //###############
                 //----------- service 接口定义,以repository借口为模板生成service接口
-                String serviceFullyQualifiedName = String.format("%s.%s", servicePackage, simpleClassName.replace("Mapper", "Service"));
+                String serviceFullyQualifiedName = String.format("%s.%s", servicePackage, simpleClassName.replace(MAPPER_SUBFIX, "Service"));
 
                 Interface serviceInterface = new Interface(new FullyQualifiedJavaType(serviceFullyQualifiedName));
                 //添加注释
                 setCommonInfo(serviceInterface, serviceFullyQualifiedName);
-                serviceInterface.addImportedType(new FullyQualifiedJavaType(String.format("%s.%s", domainPackage, simpleClassName.replace("Mapper", ""))));
+                serviceInterface.addImportedType(new FullyQualifiedJavaType(String.format("%s.%s", domainPackage, simpleClassName.replace(MAPPER_SUBFIX, ""))));
                 for (Method m : repositoryInterface.getMethods()) {
                     String methodName = m.getName();
                     if (methodName.startsWith(INSERT)) {
@@ -381,7 +394,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 //----------------------
                 //--- service impl 定义
                 //定义实现
-                String serviceImplFullyQualifiedName = String.format("%s.%s", serviceImplPackage, simpleClassName.replace("Mapper", "ServiceImpl"));
+                String serviceImplFullyQualifiedName = String.format("%s.%s", serviceImplPackage, simpleClassName.replace(MAPPER_SUBFIX, "ServiceImpl"));
                 TopLevelClass serviceImplClazz = new TopLevelClass(serviceImplFullyQualifiedName);
                 //添加注释
                 setCommonInfo(serviceImplClazz, serviceImplFullyQualifiedName);
@@ -441,12 +454,12 @@ public class GenerateRepositoryPlugin extends BasePlugin {
 
                 //#########################
                 //------------ facade 层定义
-                String facadeFullyQualifiedName = String.format("%s.%s", facadePackage, simpleClassName.replace("Mapper", "Facade"));
-                String domainClassName = simpleClassName.replace("Mapper", "");
+                String facadeFullyQualifiedName = String.format("%s.%s", facadePackage, simpleClassName.replace(MAPPER_SUBFIX, "Facade"));
+                String domainClassName = simpleClassName.replace(MAPPER_SUBFIX, "");
                 Interface facadeInterface = new Interface(new FullyQualifiedJavaType(facadeFullyQualifiedName));
                 //添加注释
                 setCommonInfo(facadeInterface, facadeFullyQualifiedName);
-                FullyQualifiedJavaType dtoFullType = new FullyQualifiedJavaType(String.format("%s.%s", dtoImplPackage, simpleClassName.replace("Mapper", "DTO")));
+                FullyQualifiedJavaType dtoFullType = new FullyQualifiedJavaType(String.format("%s.%s", dtoImplPackage, simpleClassName.replace(MAPPER_SUBFIX, "DTO")));
                 facadeInterface.addImportedType(dtoFullType);
                 facadeInterface.addImportedType(new FullyQualifiedJavaType("cn.com.servyou.xqy.framework.rpc.facade.SingleResult"));
 
@@ -477,7 +490,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 //----------------------
                 //--- facade impl 定义
                 //定义实现
-                String facadeImplFullyQualifiedName = String.format("%s.%s", facadeImplPackage, simpleClassName.replace("Mapper", "FacadeImpl"));
+                String facadeImplFullyQualifiedName = String.format("%s.%s", facadeImplPackage, simpleClassName.replace(MAPPER_SUBFIX, "FacadeImpl"));
                 TopLevelClass facadeImplClazz = new TopLevelClass(facadeImplFullyQualifiedName);
                 //添加注释
                 setCommonInfo(facadeImplClazz, facadeImplFullyQualifiedName);
@@ -509,7 +522,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 facadeImplClazz.addField(serviceTemplateField);
 
                 //Autowired convert
-                FullyQualifiedJavaType dtoConvertFullType = new FullyQualifiedJavaType(convertPackage + "." + simpleClassName.replace("Mapper", "DTOConvert"));
+                FullyQualifiedJavaType dtoConvertFullType = new FullyQualifiedJavaType(convertPackage + "." + simpleClassName.replace(MAPPER_SUBFIX, "DTOConvert"));
                 String dtoConvertClassName = dtoConvertFullType.getShortName();
                 String dtoConvertBeanName = FieldUtil.firstLower(dtoConvertClassName);
                 Field convertField = new Field(dtoConvertBeanName, dtoConvertFullType);
@@ -549,6 +562,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                         }
                     }
 
+
                     implMethod.addBodyLine("return " + serviceTemplateBeanName + (implMethod.getName().startsWith("get") || implMethod.getName().startsWith("query") ? ".executeWithoutTx(" : ".executeWithTx("));
                     implMethod.addBodyLine(String.format("%s,new ResultServiceCheckCallback<%s>() {", "\"" + method.getName() + "\"", method.getReturnType()));
                     implMethod.addBodyLine("@Override public void check() {}");
@@ -568,6 +582,85 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                     FormatTools.addMethodWithBestPosition(facadeImplClazz, implMethod);
                 }
 
+
+                //----------------------
+                //----------------------
+                //--- controller impl 定义
+                //定义实现
+                String controllerFullyQualifiedName = String.format("%s.%s", controllerPackage, simpleClassName.replace(MAPPER_SUBFIX, CONTROLLER_SUBFIX));
+                TopLevelClass controllerClazz = new TopLevelClass(controllerFullyQualifiedName);
+                //添加注释
+                setCommonInfo(controllerClazz, controllerFullyQualifiedName);
+                //添加父亲接口
+                controllerClazz.setSuperClass(new FullyQualifiedJavaType(parentControllerClass));
+                controllerClazz.addAnnotation("@Controller");
+                controllerClazz.addAnnotation("@ResponseBody");
+                controllerClazz.addAnnotation("@ReturnApiResponse");
+                controllerClazz.addAnnotation("@Validated");
+                controllerClazz.addAnnotation(String.format("@RequestMapping(%s)", "\"" + FieldUtil.firstLower(simpleClassName) + "\""));
+                //增加import
+                controllerClazz.addImportedType(new FullyQualifiedJavaType("cn.com.servyou.finance.ecs.common.web.ReturnApiResponse"));
+                controllerClazz.addImportedType(new FullyQualifiedJavaType("org.springframework.beans.factory.annotation.Autowired"));
+                controllerClazz.addImportedType(new FullyQualifiedJavaType("org.springframework.stereotype.Controller"));
+                controllerClazz.addImportedType(new FullyQualifiedJavaType("org.springframework.web.bind.annotation.GetMapping"));
+                controllerClazz.addImportedType(new FullyQualifiedJavaType("org.springframework.web.bind.annotation.PostMapping"));
+                controllerClazz.addImportedType(new FullyQualifiedJavaType("org.springframework.web.bind.annotation.RequestBody"));
+                controllerClazz.addImportedType(new FullyQualifiedJavaType("org.springframework.web.bind.annotation.RequestMapping"));
+                controllerClazz.addImportedType(new FullyQualifiedJavaType("org.springframework.web.bind.annotation.RequestParam"));
+                controllerClazz.addImportedType(new FullyQualifiedJavaType("org.springframework.web.bind.annotation.ResponseBody"));
+                controllerClazz.addImportedType(facadeInterface.getType());
+                controllerClazz.getImportedTypes().addAll(facadeInterface.getImportedTypes());
+
+
+                //Autowired service
+                String facadeBeanName = FieldUtil.firstLower(facadeInterface.getType().getShortName());
+                Field facadeField = new Field(FieldUtil.firstLower(facadeBeanName), facadeInterface.getType());
+                facadeField.setVisibility(JavaVisibility.PRIVATE);
+                facadeField.addAnnotation("@Autowired");
+                commentGenerator.addFieldComment(facadeField, introspectedTable);
+                controllerClazz.addField(facadeField);
+
+
+                for (Method method : facadeInterface.getMethods()) {
+                    List<Parameter> parameterList = method.getParameters();
+                    Parameter[] parameters = new Parameter[parameterList.size()];
+                    for (int i = 0, size = method.getParameters().size(); i < size; i++) {
+                        parameters[i] = parameterList.get(i);
+                    }
+
+                    FullyQualifiedJavaType returnType = method.getReturnType().getTypeArguments().get(0);
+                    // parseValue 方法
+                    Method m = JavaElementGeneratorTools.generateMethod(
+                            method.getName(),
+                            JavaVisibility.PUBLIC,
+                            returnType,
+                            parameters);
+                    if (method.getName().startsWith("get")
+                            || method.getName().startsWith("query")
+                            || method.getName().startsWith("list")
+                            || method.getName().startsWith("select")) {
+                        m.addAnnotation("@GetMapping()");
+                    } else {
+                        m.addAnnotation("@PostMapping()");
+                    }
+
+                    List<Parameter> params = method.getParameters();
+
+                    StringBuilder sbd = new StringBuilder();
+                    for (Parameter p : params) {
+                        if (sbd.length() > 0) {
+                            sbd.append(",");
+                        }
+                        sbd.append(p.getName());
+                    }
+
+
+                    m.addBodyLine(String.format("return %s.%s(%s).getEntity();", facadeBeanName, method.getName(), sbd.toString()));
+
+                    commentGenerator.addGeneralMethodComment(m, introspectedTable);
+                    FormatTools.addMethodWithBestPosition(controllerClazz, m);
+                }
+
                 //--------------------------
                 //--------------------------
 
@@ -577,6 +670,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 GeneratedJavaFile serviceImplJavaFile = new GeneratedJavaFile(serviceImplClazz, baseDir, javaFormatter);
                 GeneratedJavaFile facadeJavaFile = new GeneratedJavaFile(facadeInterface, baseDir, javaFormatter);
                 GeneratedJavaFile facadeImplJavaFile = new GeneratedJavaFile(facadeImplClazz, baseDir, javaFormatter);
+                GeneratedJavaFile controllerJavaFile = new GeneratedJavaFile(controllerClazz, baseDir, javaFormatter);
 
 
                 try {
@@ -586,6 +680,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                     File serviceImplDir = shellCallback.getDirectory(baseDir, facadeImplPackage);
                     File facadeDir = shellCallback.getDirectory(baseDir, facadePackage);
                     File facadeImplDir = shellCallback.getDirectory(baseDir, facadeImplPackage);
+                    File controllerImplDir = shellCallback.getDirectory(baseDir, controllerPackage);
 
                     File repositoryFile = new File(repositoryDir, repositoryJavaFile.getFileName());
                     File implFile = new File(implDir, implJavaFile.getFileName());
@@ -593,6 +688,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                     File serviceImplFile = new File(serviceImplDir, serviceImplJavaFile.getFileName());
                     File facadeFile = new File(facadeDir, facadeJavaFile.getFileName());
                     File facadeImplFile = new File(facadeImplDir, facadeImplJavaFile.getFileName());
+                    File controllerImplFile = new File(controllerImplDir, controllerJavaFile.getFileName());
 
                     files.add(repositoryJavaFile);
                     files.add(implJavaFile);
@@ -600,6 +696,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                     files.add(serviceImplJavaFile);
                     files.add(facadeJavaFile);
                     files.add(facadeImplJavaFile);
+                    files.add(controllerJavaFile);
                 } catch (ShellException e) {
                     e.printStackTrace();
                 }
