@@ -48,8 +48,9 @@ public class SelectByColumnPlugin extends PluginAdapter {
                                    IntrospectedColumn introspectedColumn) {
         String mName = "selectBy" + makeFieldName(introspectedColumn);
         FullyQualifiedJavaType paramType = FullyQualifiedJavaType.getStringInstance();
-        FullyQualifiedJavaType returnType = new FullyQualifiedJavaType(
-                "java.util.List<" + introspectedTable.getBaseRecordType() + ">");
+//        FullyQualifiedJavaType returnType = new FullyQualifiedJavaType(
+//                "java.util.List<" + introspectedTable.getBaseRecordType() + ">");
+        FullyQualifiedJavaType returnType = new FullyQualifiedJavaType(introspectedTable.getBaseRecordType());
         Method method = new Method();
         method.setName(mName);
         method.setVisibility(JavaVisibility.PUBLIC);
