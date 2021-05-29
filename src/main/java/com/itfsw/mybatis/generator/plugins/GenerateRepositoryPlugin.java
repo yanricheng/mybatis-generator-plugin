@@ -4,7 +4,6 @@ import com.itfsw.mybatis.generator.plugins.utils.BasePlugin;
 import com.itfsw.mybatis.generator.plugins.utils.FieldUtil;
 import com.itfsw.mybatis.generator.plugins.utils.FormatTools;
 import com.itfsw.mybatis.generator.plugins.utils.JavaElementGeneratorTools;
-import org.apache.commons.lang3.StringUtils;
 import org.mybatis.generator.api.GeneratedJavaFile;
 import org.mybatis.generator.api.IntrospectedTable;
 import org.mybatis.generator.api.JavaFormatter;
@@ -35,10 +34,6 @@ import java.util.stream.Collectors;
 public class GenerateRepositoryPlugin extends BasePlugin {
 
     private static final Map<String, Class<?>> namePrimitiveMap = new HashMap<>();
-    private static final String PARENT_BUILDER = "parentBuilder";
-    private static final String PARENT_CONVERT = "parentConvert";
-    private static final String PARENT_CONTROLLER = "parentController";
-
     private static final String BASE_PACKAGE = "basePackage";
     private static final String BASE_DIR = "baseDir";
 
@@ -50,23 +45,15 @@ public class GenerateRepositoryPlugin extends BasePlugin {
     private static final String MODIFY = "modify";
     private static final String SELECT = "select";
     private static final String GET = "get";
-    private static final String defaultDomainSubPackage = "biz.domain";
-    private static final String defaultDtoSubPackage = "facade.dto";
-    private static final String defaultBuilderSubPackage = "persistence.repository.builder";
-    private static final String defaultRepositoryImplSubPackage = "persistence.repository.impl";
-    private static final String defaultRepositoryInterfaceSubPackage = "biz.repository";
-    private static final String defaultConvertSubPackage = "facade.convert";
-    private static final String defaultFacadeSubPackage = "facade";
-    private static final String defaultFacadeImplSubPackage = "facade.impl";
-    private static final String defaultServiceSubPackage = "biz.service";
-    private static final String defaultServiceImplSubPackage = "biz.service.impl";
-    private static final String defaultControllerSubPackage = "web.controller";
+
     private static final String BUILDER_SUBFIX = "Builder";
     private static final String CONVERT_SUBFIX = "Convert";
     private static final String CONTROLLER_SUBFIX = "Controller";
     private static final String MAPPER_SUBFIX = "Mapper";
     private static String basePackage = null;
     private static String baseDir = null;
+    private static final String dataOjbectPackage = null;
+    private static final String mapperJavaPackage = null;
     private static String repositoryPackage = null;
     private static String repositoryImplPackage = null;
     private static String builderPackage = null;
@@ -75,9 +62,12 @@ public class GenerateRepositoryPlugin extends BasePlugin {
     private static String domainPackage = null;
     private static String facadePackage = null;
     private static String facadeImplPackage = null;
-    private static String dtoImplPackage = null;
+    private static String dtoPackage = null;
     private static String convertPackage = null;
     private static String controllerPackage = null;
+    private static String parentBuilderClass = null;
+    private static String parentConvertClass = null;
+    private static String parentControllerClass = null;
     private static JavaFormatter javaFormatter = null;
 
     static {
@@ -112,10 +102,9 @@ public class GenerateRepositoryPlugin extends BasePlugin {
         return true;
     }
 
-    private GeneratedJavaFile genPojo(CompilationUnit classObj, String replaceTarget, String replacement, String targetSubPackage) {
+    private GeneratedJavaFile genPojo(CompilationUnit classObj, String replaceTarget, String replacement, String domainTargetPackage) {
         FullyQualifiedJavaType dataObjFullType = classObj.getType();
         String simpleClassName = dataObjFullType.getShortName();
-        String domainTargetPackage = String.format("%s.%s", basePackage, targetSubPackage);
         String domainSimpleName = simpleClassName.replace(replaceTarget, replacement);
         String domainFullyQualifiedName = String.format("%s.%s", domainTargetPackage, domainSimpleName);
         //定义实现
@@ -147,16 +136,16 @@ public class GenerateRepositoryPlugin extends BasePlugin {
     }
 
     private GeneratedJavaFile genConverter(CompilationUnit classObj, String replaceTarget,
-                                           String replacement, String targetSubPackage, FullyQualifiedJavaType another, String parentClass) {
+                                           String replacement, String builderTargetPackage, FullyQualifiedJavaType another, String parentClass) {
         JavaFormatter javaFormatter = context.getJavaFormatter();
         FullyQualifiedJavaType dataObjFullType = classObj.getType();
         String simpleClassName = dataObjFullType.getShortName();
-        String builderTargetPackage = String.format("%s.%s", basePackage, targetSubPackage);
+//        String builderTargetPackage = String.format("%s.%s", basePackage, targetSubPackage);
 
         //#####################
         //构造 builder
         String parentBuilderFullyQualifiedName = String.format("%s<%s,%s>", parentClass, simpleClassName, another.getShortName());
-        String builderFullyQualifiedName = String.format("%s.%s", builderTargetPackage, StringUtils.isAllBlank(replaceTarget) ? simpleClassName + replacement : simpleClassName.replace(replaceTarget, replacement));
+        String builderFullyQualifiedName = String.format("%s.%s", builderTargetPackage, (replaceTarget == null || replaceTarget.trim().length() == 0) ? simpleClassName + replacement : simpleClassName.replace(replaceTarget, replacement));
         FullyQualifiedJavaType mapstructFullyQualifiedName = new FullyQualifiedJavaType("org.mapstruct.Mapper");
 
         Interface builderInterface = new Interface(builderFullyQualifiedName);
@@ -184,16 +173,6 @@ public class GenerateRepositoryPlugin extends BasePlugin {
             javaFormatter = context.getJavaFormatter();
         }
 
-        Object parentBuilderConf = this.getProperties().get(PARENT_BUILDER);
-        String parentBuilderClass = parentBuilderConf != null ? parentBuilderConf.toString() : "";
-
-        Object parentConvertConf = this.getProperties().get(PARENT_CONVERT);
-        String parentConvertClass = parentConvertConf != null ? parentConvertConf.toString() : "";
-
-
-        Object parentControllerConf = this.getProperties().get(PARENT_CONTROLLER);
-        String parentControllerClass = parentControllerConf != null ? parentControllerConf.toString() : "";
-
         if (basePackage == null) {
             basePackage = context.getProperty(BASE_PACKAGE);
             if (basePackage == null) {
@@ -201,20 +180,68 @@ public class GenerateRepositoryPlugin extends BasePlugin {
             }
 
             baseDir = context.getProperty(BASE_DIR);
-            repositoryPackage = basePackage + "." + defaultRepositoryInterfaceSubPackage;
-            repositoryImplPackage = basePackage + "." + defaultRepositoryImplSubPackage;
-            builderPackage = basePackage + "." + defaultBuilderSubPackage;
 
-            servicePackage = basePackage + "." + defaultServiceSubPackage;
-            serviceImplPackage = basePackage + "." + defaultServiceImplSubPackage;
-            domainPackage = basePackage + "." + defaultDomainSubPackage;
+            parentBuilderClass = context.getProperty("parentBuilderClass");
+            if (parentBuilderClass == null) {
+                parentBuilderClass = this.getProperties().getProperty("parentBuilderClass");
+            }
 
-            facadePackage = basePackage + "." + defaultFacadeSubPackage;
-            facadeImplPackage = basePackage + "." + defaultFacadeImplSubPackage;
-            dtoImplPackage = basePackage + "." + defaultDtoSubPackage;
-            convertPackage = basePackage + "." + defaultConvertSubPackage;
-            controllerPackage = basePackage + "." + defaultControllerSubPackage;
+            parentConvertClass = context.getProperty("parentConvertClass");
+            if (parentConvertClass == null) {
+                parentConvertClass = this.getProperties().getProperty("parentConvertClass");
+            }
 
+            parentControllerClass = context.getProperty("parentControllerClass");
+            if (parentControllerClass == null) {
+                parentControllerClass = this.getProperties().getProperty("parentControllerClass");
+            }
+
+
+            repositoryPackage = context.getProperty("repositoryPackage");
+            if (repositoryPackage == null) {
+                repositoryPackage = this.getProperties().getProperty("repositoryPackage");
+            }
+            repositoryImplPackage = context.getProperty("repositoryImplPackage");
+            if (repositoryImplPackage == null) {
+                repositoryImplPackage = this.getProperties().getProperty("repositoryImplPackage");
+            }
+            builderPackage = context.getProperty("builderPackage");
+            if (builderPackage == null) {
+                builderPackage = this.getProperties().getProperty("builderPackage");
+            }
+            servicePackage = context.getProperty("servicePackage");
+            if (servicePackage == null) {
+                servicePackage = this.getProperties().getProperty("servicePackage");
+            }
+            serviceImplPackage = context.getProperty("serviceImplPackage");
+            if (serviceImplPackage == null) {
+                serviceImplPackage = this.getProperties().getProperty("serviceImplPackage");
+            }
+            domainPackage = context.getProperty("domainPackage");
+            if (domainPackage == null) {
+                domainPackage = this.getProperties().getProperty("domainPackage");
+            }
+
+            facadePackage = context.getProperty("facadePackage");
+            if (facadePackage == null) {
+                facadePackage = this.getProperties().getProperty("facadePackage");
+            }
+            facadeImplPackage = context.getProperty("facadeImplPackage");
+            if (facadeImplPackage == null) {
+                facadeImplPackage = this.getProperties().getProperty("facadeImplPackage");
+            }
+            dtoPackage = context.getProperty("dtoPackage");
+            if (dtoPackage == null) {
+                dtoPackage = this.getProperties().getProperty("dtoPackage");
+            }
+            convertPackage = context.getProperty("convertPackage");
+            if (convertPackage == null) {
+                convertPackage = this.getProperties().getProperty("convertPackage");
+            }
+            controllerPackage = context.getProperty("controllerPackage");
+            if (controllerPackage == null) {
+                controllerPackage = this.getProperties().getProperty("controllerPackage");
+            }
         }
 
 
@@ -226,19 +253,19 @@ public class GenerateRepositoryPlugin extends BasePlugin {
 
 
             if (simpleClassName.endsWith(DO)) {
-                GeneratedJavaFile domainJavaFile = genPojo(javaFile.getCompilationUnit(), DO, "", defaultDomainSubPackage);
+                GeneratedJavaFile domainJavaFile = genPojo(javaFile.getCompilationUnit(), DO, "", domainPackage);
                 files.add(domainJavaFile);
 
-                GeneratedJavaFile dtoJavaFile = genPojo(javaFile.getCompilationUnit(), DO, DTO, defaultDtoSubPackage);
+                GeneratedJavaFile dtoJavaFile = genPojo(javaFile.getCompilationUnit(), DO, DTO, dtoPackage);
                 files.add(dtoJavaFile);
 
 
                 GeneratedJavaFile builderJavaFile = genConverter(javaFile.getCompilationUnit(), DO, BUILDER_SUBFIX,
-                        defaultBuilderSubPackage, domainJavaFile.getCompilationUnit().getType(), parentBuilderClass);
+                        builderPackage, domainJavaFile.getCompilationUnit().getType(), parentBuilderClass);
                 files.add(builderJavaFile);
 
                 GeneratedJavaFile converterJavaFile = genConverter(dtoJavaFile.getCompilationUnit(), "", CONVERT_SUBFIX,
-                        defaultConvertSubPackage, domainJavaFile.getCompilationUnit().getType(), parentConvertClass);
+                        convertPackage, domainJavaFile.getCompilationUnit().getType(), parentConvertClass);
                 files.add(converterJavaFile);
 
 
@@ -460,7 +487,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 Interface facadeInterface = new Interface(new FullyQualifiedJavaType(facadeFullyQualifiedName));
                 //添加注释
                 setCommonInfo(facadeInterface, facadeFullyQualifiedName);
-                FullyQualifiedJavaType dtoFullType = new FullyQualifiedJavaType(String.format("%s.%s", dtoImplPackage, simpleClassName.replace(MAPPER_SUBFIX, "DTO")));
+                FullyQualifiedJavaType dtoFullType = new FullyQualifiedJavaType(String.format("%s.%s", dtoPackage, simpleClassName.replace(MAPPER_SUBFIX, "DTO")));
                 facadeInterface.addImportedType(dtoFullType);
                 facadeInterface.addImportedType(new FullyQualifiedJavaType("cn.com.servyou.xqy.framework.rpc.facade.SingleResult"));
 
@@ -499,7 +526,9 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 facadeImplClazz.addSuperInterface(facadeInterface.getType());
                 facadeImplClazz.addAnnotation("@Service");
                 //增加import
+                facadeImplClazz.addImportedType(new FullyQualifiedJavaType("org.springframework.beans.factory.annotation.Autowired"));
                 facadeImplClazz.addImportedType(new FullyQualifiedJavaType("org.springframework.stereotype.Service"));
+                facadeImplClazz.addImportedType(new FullyQualifiedJavaType("cn.com.servyou.xqy.framework.rpc.facadeimpl.ResultServiceCheckCallback"));
                 FullyQualifiedJavaType serviceTemplateFullType = new FullyQualifiedJavaType("cn.com.servyou.xqy.framework.rpc.facadeimpl.ServiceTemplate");
                 facadeInterface.addImportedType(serviceTemplateFullType);
                 facadeImplClazz.getImportedTypes().addAll(facadeInterface.getImportedTypes());
