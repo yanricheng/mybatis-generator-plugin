@@ -331,6 +331,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 //增加import
                 repositoryImplClazz.addImportedType(new FullyQualifiedJavaType("org.springframework.beans.factory.annotation.Autowired"));
                 repositoryImplClazz.addImportedType(compilationUnit);
+                repositoryImplClazz.addImportedTypes(repositoryInterface.getImportedTypes());
 
                 //Autowired mapper
                 Field mapperField = new Field(FieldUtil.firstLower(simpleClassName), compilationUnit);
@@ -431,6 +432,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 serviceImplClazz.addAnnotation("@Service");
                 //增加import
                 serviceImplClazz.addImportedType(new FullyQualifiedJavaType("org.springframework.stereotype.Service"));
+                serviceImplClazz.addImportedType(new FullyQualifiedJavaType("org.springframework.beans.factory.annotation.Autowired"));
                 serviceImplClazz.getImportedTypes().addAll(serviceInterface.getImportedTypes());
                 serviceImplClazz.addImportedType(serviceInterface.getType());
                 serviceImplClazz.addImportedType(repositoryInterface.getType());
@@ -638,6 +640,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 controllerClazz.addImportedType(new FullyQualifiedJavaType("org.springframework.web.bind.annotation.RequestMapping"));
                 controllerClazz.addImportedType(new FullyQualifiedJavaType("org.springframework.web.bind.annotation.RequestParam"));
                 controllerClazz.addImportedType(new FullyQualifiedJavaType("org.springframework.web.bind.annotation.ResponseBody"));
+                controllerClazz.addImportedType(new FullyQualifiedJavaType("org.springframework.validation.annotation.Validated"));
                 controllerClazz.addImportedType(facadeInterface.getType());
                 controllerClazz.getImportedTypes().addAll(facadeInterface.getImportedTypes());
 
