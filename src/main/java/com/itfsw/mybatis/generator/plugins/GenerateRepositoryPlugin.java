@@ -34,8 +34,7 @@ import java.util.stream.Collectors;
 public class GenerateRepositoryPlugin extends BasePlugin {
 
     private static final Map<String, Class<?>> namePrimitiveMap = new HashMap<>();
-    private static final String BASE_PACKAGE = "basePackage";
-    private static final String BASE_DIR = "baseDir";
+    private static final String BASE_JAVA_DIR = "baseJavaDir";
 
     private static final String DO = "DO";
     private static final String DTO = "DTO";
@@ -50,10 +49,9 @@ public class GenerateRepositoryPlugin extends BasePlugin {
     private static final String CONVERT_SUBFIX = "Convert";
     private static final String CONTROLLER_SUBFIX = "Controller";
     private static final String MAPPER_SUBFIX = "Mapper";
-    private static String basePackage = null;
-    private static String baseDir = null;
     private static final String dataOjbectPackage = null;
     private static final String mapperJavaPackage = null;
+    private static String baseJavaDir = null;
     private static String repositoryPackage = null;
     private static String repositoryImplPackage = null;
     private static String builderPackage = null;
@@ -125,9 +123,9 @@ public class GenerateRepositoryPlugin extends BasePlugin {
         domainClazz.getAnnotations().addAll(dataObjClazz.getAnnotations());
         //------------------
 
-        GeneratedJavaFile domainJavaFile = new GeneratedJavaFile(domainClazz, baseDir, javaFormatter);
+        GeneratedJavaFile domainJavaFile = new GeneratedJavaFile(domainClazz, baseJavaDir, javaFormatter);
         try {
-            new File(shellCallback.getDirectory(baseDir, domainTargetPackage), domainJavaFile.getFileName());
+            new File(shellCallback.getDirectory(baseJavaDir, domainTargetPackage), domainJavaFile.getFileName());
             return domainJavaFile;
         } catch (ShellException e) {
             e.printStackTrace();
@@ -157,9 +155,9 @@ public class GenerateRepositoryPlugin extends BasePlugin {
         builderInterface.addSuperInterface(new FullyQualifiedJavaType(parentBuilderFullyQualifiedName));
         //------------------
 
-        GeneratedJavaFile builderJavaFile = new GeneratedJavaFile(builderInterface, baseDir, javaFormatter);
+        GeneratedJavaFile builderJavaFile = new GeneratedJavaFile(builderInterface, baseJavaDir, javaFormatter);
         try {
-            new File(shellCallback.getDirectory(baseDir, builderTargetPackage), builderJavaFile.getFileName());
+            new File(shellCallback.getDirectory(baseJavaDir, builderTargetPackage), builderJavaFile.getFileName());
             return builderJavaFile;
         } catch (ShellException e) {
             e.printStackTrace();
@@ -173,75 +171,68 @@ public class GenerateRepositoryPlugin extends BasePlugin {
             javaFormatter = context.getJavaFormatter();
         }
 
-        if (basePackage == null) {
-            basePackage = context.getProperty(BASE_PACKAGE);
-            if (basePackage == null) {
-                basePackage = this.getProperties().getProperty(BASE_PACKAGE);
-            }
+        baseJavaDir = context.getProperty(BASE_JAVA_DIR);
 
-            baseDir = context.getProperty(BASE_DIR);
+        parentBuilderClass = context.getProperty("parentBuilderClass");
+        if (parentBuilderClass == null) {
+            parentBuilderClass = this.getProperties().getProperty("parentBuilderClass");
+        }
 
-            parentBuilderClass = context.getProperty("parentBuilderClass");
-            if (parentBuilderClass == null) {
-                parentBuilderClass = this.getProperties().getProperty("parentBuilderClass");
-            }
+        parentConvertClass = context.getProperty("parentConvertClass");
+        if (parentConvertClass == null) {
+            parentConvertClass = this.getProperties().getProperty("parentConvertClass");
+        }
 
-            parentConvertClass = context.getProperty("parentConvertClass");
-            if (parentConvertClass == null) {
-                parentConvertClass = this.getProperties().getProperty("parentConvertClass");
-            }
-
-            parentControllerClass = context.getProperty("parentControllerClass");
-            if (parentControllerClass == null) {
-                parentControllerClass = this.getProperties().getProperty("parentControllerClass");
-            }
+        parentControllerClass = context.getProperty("parentControllerClass");
+        if (parentControllerClass == null) {
+            parentControllerClass = this.getProperties().getProperty("parentControllerClass");
+        }
 
 
-            repositoryPackage = context.getProperty("repositoryPackage");
-            if (repositoryPackage == null) {
-                repositoryPackage = this.getProperties().getProperty("repositoryPackage");
-            }
-            repositoryImplPackage = context.getProperty("repositoryImplPackage");
-            if (repositoryImplPackage == null) {
-                repositoryImplPackage = this.getProperties().getProperty("repositoryImplPackage");
-            }
-            builderPackage = context.getProperty("builderPackage");
-            if (builderPackage == null) {
-                builderPackage = this.getProperties().getProperty("builderPackage");
-            }
-            servicePackage = context.getProperty("servicePackage");
-            if (servicePackage == null) {
-                servicePackage = this.getProperties().getProperty("servicePackage");
-            }
-            serviceImplPackage = context.getProperty("serviceImplPackage");
-            if (serviceImplPackage == null) {
-                serviceImplPackage = this.getProperties().getProperty("serviceImplPackage");
-            }
-            domainPackage = context.getProperty("domainPackage");
-            if (domainPackage == null) {
-                domainPackage = this.getProperties().getProperty("domainPackage");
-            }
+        repositoryPackage = context.getProperty("repositoryPackage");
+        if (repositoryPackage == null) {
+            repositoryPackage = this.getProperties().getProperty("repositoryPackage");
+        }
+        repositoryImplPackage = context.getProperty("repositoryImplPackage");
+        if (repositoryImplPackage == null) {
+            repositoryImplPackage = this.getProperties().getProperty("repositoryImplPackage");
+        }
+        builderPackage = context.getProperty("builderPackage");
+        if (builderPackage == null) {
+            builderPackage = this.getProperties().getProperty("builderPackage");
+        }
+        servicePackage = context.getProperty("servicePackage");
+        if (servicePackage == null) {
+            servicePackage = this.getProperties().getProperty("servicePackage");
+        }
+        serviceImplPackage = context.getProperty("serviceImplPackage");
+        if (serviceImplPackage == null) {
+            serviceImplPackage = this.getProperties().getProperty("serviceImplPackage");
+        }
+        domainPackage = context.getProperty("domainPackage");
+        if (domainPackage == null) {
+            domainPackage = this.getProperties().getProperty("domainPackage");
+        }
 
-            facadePackage = context.getProperty("facadePackage");
-            if (facadePackage == null) {
-                facadePackage = this.getProperties().getProperty("facadePackage");
-            }
-            facadeImplPackage = context.getProperty("facadeImplPackage");
-            if (facadeImplPackage == null) {
-                facadeImplPackage = this.getProperties().getProperty("facadeImplPackage");
-            }
-            dtoPackage = context.getProperty("dtoPackage");
-            if (dtoPackage == null) {
-                dtoPackage = this.getProperties().getProperty("dtoPackage");
-            }
-            convertPackage = context.getProperty("convertPackage");
-            if (convertPackage == null) {
-                convertPackage = this.getProperties().getProperty("convertPackage");
-            }
-            controllerPackage = context.getProperty("controllerPackage");
-            if (controllerPackage == null) {
-                controllerPackage = this.getProperties().getProperty("controllerPackage");
-            }
+        facadePackage = context.getProperty("facadePackage");
+        if (facadePackage == null) {
+            facadePackage = this.getProperties().getProperty("facadePackage");
+        }
+        facadeImplPackage = context.getProperty("facadeImplPackage");
+        if (facadeImplPackage == null) {
+            facadeImplPackage = this.getProperties().getProperty("facadeImplPackage");
+        }
+        dtoPackage = context.getProperty("dtoPackage");
+        if (dtoPackage == null) {
+            dtoPackage = this.getProperties().getProperty("dtoPackage");
+        }
+        convertPackage = context.getProperty("convertPackage");
+        if (convertPackage == null) {
+            convertPackage = this.getProperties().getProperty("convertPackage");
+        }
+        controllerPackage = context.getProperty("controllerPackage");
+        if (controllerPackage == null) {
+            controllerPackage = this.getProperties().getProperty("controllerPackage");
         }
 
 
@@ -382,9 +373,9 @@ public class GenerateRepositoryPlugin extends BasePlugin {
 
                     if (implMethod.getName().contains("select")) {
                         //ecsUserBuilder.toEntity(ecsUserMapper.selectByUserId(userId));
-                        implMethod.addBodyLine(String.format("return %s(%s.%s(%s));", bulderBeanName + ".toEntity", simpleBeanName, repositoryMethod.getName(), sbd.toString()));
+                        implMethod.addBodyLine(String.format("return %s(%s.%s(%s));", bulderBeanName + ".toEntity", simpleBeanName, repositoryMethod.getName(), sbd));
                     } else {
-                        implMethod.addBodyLine(String.format("return %s.%s(%s);", simpleBeanName, repositoryMethod.getName(), sbd.toString()));
+                        implMethod.addBodyLine(String.format("return %s.%s(%s);", simpleBeanName, repositoryMethod.getName(), sbd));
                     }
                     commentGenerator.addGeneralMethodComment(implMethod, introspectedTable);
                     FormatTools.addMethodWithBestPosition(repositoryImplClazz, implMethod);
@@ -477,7 +468,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                         sbd.append(p.getName());
                     }
 
-                    implMethod.addBodyLine(String.format("return %s.%s(%s);", repositoryBeanName, methodName, sbd.toString()));
+                    implMethod.addBodyLine(String.format("return %s.%s(%s);", repositoryBeanName, methodName, sbd));
                     commentGenerator.addGeneralMethodComment(implMethod, introspectedTable);
                     FormatTools.addMethodWithBestPosition(serviceImplClazz, implMethod);
                 }
@@ -603,9 +594,9 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                     String returnVal = null;
                     if (implMethod.getName().contains("get")) {
                         //ecsUserBuilder.toEntity(ecsUserMapper.selectByUserId(userId));
-                        returnVal = String.format("%s(%s.%s(%s))", dtoConvertBeanName + ".toDto", serviceBeanName, method.getName(), sbd.toString());
+                        returnVal = String.format("%s(%s.%s(%s))", dtoConvertBeanName + ".toDto", serviceBeanName, method.getName(), sbd);
                     } else {
-                        returnVal = String.format("%s.%s(%s)", serviceBeanName, method.getName(), sbd.toString());
+                        returnVal = String.format("%s.%s(%s)", serviceBeanName, method.getName(), sbd);
                     }
 
                     implMethod.addBodyLine(String.format("result.setEntity(%s);}});", returnVal));
@@ -688,7 +679,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                     }
 
 
-                    m.addBodyLine(String.format("return %s.%s(%s).getEntity();", facadeBeanName, method.getName(), sbd.toString()));
+                    m.addBodyLine(String.format("return %s.%s(%s).getEntity();", facadeBeanName, method.getName(), sbd));
 
                     commentGenerator.addGeneralMethodComment(m, introspectedTable);
                     FormatTools.addMethodWithBestPosition(controllerClazz, m);
@@ -697,23 +688,23 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 //--------------------------
                 //--------------------------
 
-                GeneratedJavaFile repositoryJavaFile = new GeneratedJavaFile(repositoryInterface, baseDir, javaFormatter);
-                GeneratedJavaFile implJavaFile = new GeneratedJavaFile(repositoryImplClazz, baseDir, javaFormatter);
-                GeneratedJavaFile serviceJavaFile = new GeneratedJavaFile(serviceInterface, baseDir, javaFormatter);
-                GeneratedJavaFile serviceImplJavaFile = new GeneratedJavaFile(serviceImplClazz, baseDir, javaFormatter);
-                GeneratedJavaFile facadeJavaFile = new GeneratedJavaFile(facadeInterface, baseDir, javaFormatter);
-                GeneratedJavaFile facadeImplJavaFile = new GeneratedJavaFile(facadeImplClazz, baseDir, javaFormatter);
-                GeneratedJavaFile controllerJavaFile = new GeneratedJavaFile(controllerClazz, baseDir, javaFormatter);
+                GeneratedJavaFile repositoryJavaFile = new GeneratedJavaFile(repositoryInterface, baseJavaDir, javaFormatter);
+                GeneratedJavaFile implJavaFile = new GeneratedJavaFile(repositoryImplClazz, baseJavaDir, javaFormatter);
+                GeneratedJavaFile serviceJavaFile = new GeneratedJavaFile(serviceInterface, baseJavaDir, javaFormatter);
+                GeneratedJavaFile serviceImplJavaFile = new GeneratedJavaFile(serviceImplClazz, baseJavaDir, javaFormatter);
+                GeneratedJavaFile facadeJavaFile = new GeneratedJavaFile(facadeInterface, baseJavaDir, javaFormatter);
+                GeneratedJavaFile facadeImplJavaFile = new GeneratedJavaFile(facadeImplClazz, baseJavaDir, javaFormatter);
+                GeneratedJavaFile controllerJavaFile = new GeneratedJavaFile(controllerClazz, baseJavaDir, javaFormatter);
 
 
                 try {
-                    File repositoryDir = shellCallback.getDirectory(baseDir, repositoryPackage);
-                    File implDir = shellCallback.getDirectory(baseDir, repositoryImplPackage);
-                    File serviceDir = shellCallback.getDirectory(baseDir, servicePackage);
-                    File serviceImplDir = shellCallback.getDirectory(baseDir, facadeImplPackage);
-                    File facadeDir = shellCallback.getDirectory(baseDir, facadePackage);
-                    File facadeImplDir = shellCallback.getDirectory(baseDir, facadeImplPackage);
-                    File controllerImplDir = shellCallback.getDirectory(baseDir, controllerPackage);
+                    File repositoryDir = shellCallback.getDirectory(baseJavaDir, repositoryPackage);
+                    File implDir = shellCallback.getDirectory(baseJavaDir, repositoryImplPackage);
+                    File serviceDir = shellCallback.getDirectory(baseJavaDir, servicePackage);
+                    File serviceImplDir = shellCallback.getDirectory(baseJavaDir, facadeImplPackage);
+                    File facadeDir = shellCallback.getDirectory(baseJavaDir, facadePackage);
+                    File facadeImplDir = shellCallback.getDirectory(baseJavaDir, facadeImplPackage);
+                    File controllerImplDir = shellCallback.getDirectory(baseJavaDir, controllerPackage);
 
                     File repositoryFile = new File(repositoryDir, repositoryJavaFile.getFileName());
                     File implFile = new File(implDir, implJavaFile.getFileName());
