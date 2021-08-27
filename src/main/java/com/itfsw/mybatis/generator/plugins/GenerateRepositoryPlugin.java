@@ -1,5 +1,6 @@
 package com.itfsw.mybatis.generator.plugins;
 
+import com.itfsw.mybatis.generator.plugins.biz.enums.ClassType;
 import com.itfsw.mybatis.generator.plugins.utils.BasePlugin;
 import com.itfsw.mybatis.generator.plugins.utils.FieldUtil;
 import com.itfsw.mybatis.generator.plugins.utils.FormatTools;
@@ -22,9 +23,12 @@ import org.mybatis.generator.internal.DefaultShellCallback;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -35,6 +39,18 @@ public class GenerateRepositoryPlugin extends BasePlugin {
 
     private static final Map<String, Class<?>> namePrimitiveMap = new HashMap<>();
     private static final String BASE_JAVA_DIR = "baseJavaDir";
+    private static final String DOMAIN_OBJ_EXCLUDE_FIELDS = "domainObjectExcludeFields";
+
+    private static final FullyQualifiedJavaType serializable = new FullyQualifiedJavaType("java.io.Serializable");
+    private static final FullyQualifiedJavaType getter = new FullyQualifiedJavaType("lombok.Getter");
+    private static final FullyQualifiedJavaType setter = new FullyQualifiedJavaType("lombok.Setter");
+    private static final FullyQualifiedJavaType toString = new FullyQualifiedJavaType("lombok.ToString");
+    private static final FullyQualifiedJavaType superBuilder = new FullyQualifiedJavaType("lombok.experimental.SuperBuilder");
+    private static final String GETTER = "@Getter";
+    private static final String SETTER = "@Setter";
+    private static final String TOSTRING = "@ToString";
+    private static final String SUPERBUILDER = "@SuperBuilder";
+
 
     private static final String DO = "DO";
     private static final String DTO = "DTO";
@@ -49,8 +65,8 @@ public class GenerateRepositoryPlugin extends BasePlugin {
     private static final String CONVERT_SUBFIX = "Convert";
     private static final String CONTROLLER_SUBFIX = "Controller";
     private static final String MAPPER_SUBFIX = "Mapper";
-    private static final String dataOjbectPackage = null;
-    private static final String mapperJavaPackage = null;
+    private static String dataOjbectPackage = null;
+    private static String mapperJavaPackage = null;
     private static String baseJavaDir = null;
     private static String repositoryPackage = null;
     private static String repositoryImplPackage = null;
@@ -67,6 +83,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
     private static String parentConvertClass = null;
     private static String parentControllerClass = null;
     private static JavaFormatter javaFormatter = null;
+    private static String domainObjectExcludeFields = null;
 
     static {
         namePrimitiveMap.put("boolean", Boolean.class);
@@ -100,32 +117,52 @@ public class GenerateRepositoryPlugin extends BasePlugin {
         return true;
     }
 
-    private GeneratedJavaFile genPojo(CompilationUnit classObj, String replaceTarget, String replacement, String domainTargetPackage) {
-        FullyQualifiedJavaType dataObjFullType = classObj.getType();
+    private GeneratedJavaFile genPojo(CompilationUnit dataObject, ClassType targetClassType, String targetFullPackage, String targetSimpleClassName) {
+        FullyQualifiedJavaType dataObjFullType = dataObject.getType();
         String simpleClassName = dataObjFullType.getShortName();
-        String domainSimpleName = simpleClassName.replace(replaceTarget, replacement);
-        String domainFullyQualifiedName = String.format("%s.%s", domainTargetPackage, domainSimpleName);
+        String targetFullyQualifiedName = String.format("%s.%s", targetFullPackage, targetSimpleClassName);
         //定义实现
-        TopLevelClass domainClazz = new TopLevelClass(domainFullyQualifiedName);
-        //添加注释
-        setCommonInfo(domainClazz, domainFullyQualifiedName);
+        TopLevelClass targetClazz = new TopLevelClass(targetFullyQualifiedName);
         //添加父接口
-        FullyQualifiedJavaType serializableFullyQualifiedName = new FullyQualifiedJavaType("java.io.Serializable");
-        domainClazz.addSuperInterface(serializableFullyQualifiedName);
-        domainClazz.addImportedType(serializableFullyQualifiedName);
+        targetClazz.addSuperInterface(serializable);
+        targetClazz.addImportedType(serializable);
+        targetClazz.setVisibility(JavaVisibility.PUBLIC);
 
         //#####################
-        //构造domain
-        TopLevelClass dataObjClazz = (TopLevelClass) classObj;
-        domainClazz.getImportedTypes().addAll(dataObjClazz.getImportedTypes());
-        domainClazz.getFields().addAll(dataObjClazz.getFields());
-        domainClazz.getMethods().addAll(dataObjClazz.getMethods());
-        domainClazz.getAnnotations().addAll(dataObjClazz.getAnnotations());
+        if (targetClassType == ClassType.domainEntity) {
+            //添加注释
+            setCommonInfo(targetClazz, "该类继承了DataObject，是个领域对象，主要是描述域属性及行为");
+            targetClazz.setSuperClass(dataObjFullType.getShortName());
+            targetClazz.addImportedType(dataObjFullType);
+        } else {
+            TopLevelClass dataObjClazz = (TopLevelClass) dataObject;
+            targetClazz.getImportedTypes().addAll(dataObjClazz.getImportedTypes());
+            targetClazz.getFields().addAll(dataObjClazz.getFields());
+            targetClazz.getAnnotations().addAll(dataObjClazz.getAnnotations());
+            Set<String> excludeSet = Arrays.stream(domainObjectExcludeFields.split(",")).collect(Collectors.toSet());
+            Set<Field> fieldSet = new HashSet<>();
+            for (Field f : targetClazz.getFields()) {
+                if (excludeSet.contains(f.getName())) {
+                    fieldSet.add(f);
+                }
+            }
+            targetClazz.getFields().removeAll(fieldSet);
+        }
+
+        targetClazz.getAnnotations().add(GETTER);
+        targetClazz.getAnnotations().add(SETTER);
+        targetClazz.getAnnotations().add(TOSTRING);
+        targetClazz.getAnnotations().add(SUPERBUILDER);
+        targetClazz.addImportedType(getter);
+        targetClazz.addImportedType(setter);
+        targetClazz.addImportedType(toString);
+        targetClazz.addImportedType(superBuilder);
+
         //------------------
 
-        GeneratedJavaFile domainJavaFile = new GeneratedJavaFile(domainClazz, baseJavaDir, javaFormatter);
+        GeneratedJavaFile domainJavaFile = new GeneratedJavaFile(targetClazz, baseJavaDir, javaFormatter);
         try {
-            new File(shellCallback.getDirectory(baseJavaDir, domainTargetPackage), domainJavaFile.getFileName());
+            new File(shellCallback.getDirectory(baseJavaDir, targetFullPackage), domainJavaFile.getFileName());
             return domainJavaFile;
         } catch (ShellException e) {
             e.printStackTrace();
@@ -172,6 +209,11 @@ public class GenerateRepositoryPlugin extends BasePlugin {
         }
 
         baseJavaDir = context.getProperty(BASE_JAVA_DIR);
+
+        domainObjectExcludeFields = context.getProperty(DOMAIN_OBJ_EXCLUDE_FIELDS);
+        if (domainObjectExcludeFields == null) {
+            domainObjectExcludeFields = this.getProperties().getProperty(DOMAIN_OBJ_EXCLUDE_FIELDS);
+        }
 
         parentBuilderClass = context.getProperty("parentBuilderClass");
         if (parentBuilderClass == null) {
@@ -235,6 +277,16 @@ public class GenerateRepositoryPlugin extends BasePlugin {
             controllerPackage = this.getProperties().getProperty("controllerPackage");
         }
 
+        mapperJavaPackage = context.getProperty("mapperJavaPackage");
+        if (mapperJavaPackage == null) {
+            mapperJavaPackage = this.getProperties().getProperty("mapperJavaPackage");
+        }
+
+        dataOjbectPackage = context.getProperty("dataOjbectPackage");
+        if (dataOjbectPackage == null) {
+            dataOjbectPackage = this.getProperties().getProperty("dataOjbectPackage");
+        }
+
 
         List<GeneratedJavaFile> files = new ArrayList<GeneratedJavaFile>();
         for (GeneratedJavaFile javaFile : introspectedTable.getGeneratedJavaFiles()) {
@@ -244,10 +296,11 @@ public class GenerateRepositoryPlugin extends BasePlugin {
 
 
             if (simpleClassName.endsWith(DO)) {
-                GeneratedJavaFile domainJavaFile = genPojo(javaFile.getCompilationUnit(), DO, "", domainPackage);
+                CompilationUnit dataObj = javaFile.getCompilationUnit();
+                GeneratedJavaFile domainJavaFile = genPojo(dataObj, ClassType.domainEntity, domainPackage, dataObj.getType().getShortName().replace(DO, ""));
                 files.add(domainJavaFile);
 
-                GeneratedJavaFile dtoJavaFile = genPojo(javaFile.getCompilationUnit(), DO, DTO, dtoPackage);
+                GeneratedJavaFile dtoJavaFile = genPojo(javaFile.getCompilationUnit(), ClassType.domainAggregationDto, dtoPackage, dataObj.getType().getShortName().replace(DO, DTO));
                 files.add(dtoJavaFile);
 
 
@@ -677,8 +730,6 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                         }
                         sbd.append(p.getName());
                     }
-
-
                     m.addBodyLine(String.format("return %s.%s(%s).getEntity();", facadeBeanName, method.getName(), sbd));
 
                     commentGenerator.addGeneralMethodComment(m, introspectedTable);
