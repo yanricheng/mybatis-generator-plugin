@@ -66,6 +66,9 @@ public class GenerateRepositoryPlugin extends BasePlugin {
 
     @Override
     public List<GeneratedJavaFile> contextGenerateAdditionalJavaFiles(IntrospectedTable introspectedTable) {
+
+        String tableDesc = introspectedTable.getTableConfigurationProperty("tableDesc");
+
         if (javaFormatter == null) {
             javaFormatter = context.getJavaFormatter();
         }
@@ -283,7 +286,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 repositoryImplClazz.getStaticImports().addAll(mapperInterface.getStaticImports());
 
                 for (Method repMethod : repositoryInterface.getMethods()) {
-                    xCommons.setCommentInfo(repMethod, getOpName(repMethod.getName()), repMethod.getParameters(),false);
+                    xCommons.setCommentInfo(repMethod, getOpName(repMethod.getName()) + tableDesc, repMethod.getParameters(), false);
                     List<Parameter> parameterList = repMethod.getParameters();
                     Parameter[] parameters = new Parameter[parameterList.size()];
                     for (int i = 0, size = repMethod.getParameters().size(); i < size; i++) {
@@ -320,7 +323,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
 //                    }
 
                     repImplMethod.addBodyLine(String.format("return %s.%s(%s);", simpleBeanName, repMethod.getName(), sbd));
-                    xCommons.setCommentInfo(repImplMethod, getOpName(repImplMethod.getName()), repImplMethod.getParameters(),true);
+                    xCommons.setCommentInfo(repImplMethod, getOpName(repImplMethod.getName()) + tableDesc, repImplMethod.getParameters(), true);
 //                    commentGenerator.addGeneralMethodComment(implMethod, introspectedTable);
                     FormatTools.addMethodWithBestPosition(repositoryImplClazz, repImplMethod);
                 }
@@ -361,7 +364,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                             m.getReturnType(),
                             m.getParameters().toArray(new Parameter[m.getParameters().size()]));
                     srvMethod.setReturnType(m.getReturnType());
-                    xCommons.setCommentInfo(srvMethod, getOpName(srvMethod.getName()), srvMethod.getParameters(),false);
+                    xCommons.setCommentInfo(srvMethod, getOpName(srvMethod.getName()) + tableDesc, srvMethod.getParameters(), false);
                     serviceInterface.addMethod(srvMethod);
                 }
 
@@ -429,7 +432,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
 
                     srvImplMethod.addBodyLine(String.format("return %s.%s(%s);", repositoryBeanName, methodName, sbd));
 //                    commentGenerator.addGeneralMethodComment(implMethod, introspectedTable);
-                    xCommons.setCommentInfo(srvImplMethod, getOpName(srvImplMethod.getName()), srvImplMethod.getParameters(),true);
+                    xCommons.setCommentInfo(srvImplMethod, getOpName(srvImplMethod.getName()) + tableDesc, srvImplMethod.getParameters(), true);
                     FormatTools.addMethodWithBestPosition(serviceImplClazz, srvImplMethod);
                 }
 
@@ -465,7 +468,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                             returnType,
                             parameters);
                     facadeInterface.addMethod(facadeMethod);
-                    xCommons.setCommentInfo(facadeMethod, getOpName(facadeMethod.getName()), m.getParameters(),false);
+                    xCommons.setCommentInfo(facadeMethod, getOpName(facadeMethod.getName()) + tableDesc, m.getParameters(), false);
                 }
 
                 //----------------------
@@ -562,7 +565,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
 
                     implMethod.addBodyLine(String.format("result.setEntity(%s);}});", returnVal));
 
-                    xCommons.setCommentInfo(implMethod, getOpName(implMethod.getName()), implMethod.getParameters(),true);
+                    xCommons.setCommentInfo(implMethod, getOpName(implMethod.getName()) + tableDesc, implMethod.getParameters(), true);
                     FormatTools.addMethodWithBestPosition(facadeImplClazz, implMethod);
                 }
 
@@ -642,7 +645,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                     facadeImplMethod.addBodyLine(String.format("return %s.%s(%s).getEntity();", facadeBeanName, facadeMethod.getName(), sbd));
 
 //                    commentGenerator.addGeneralMethodComment(m, introspectedTable);
-                    xCommons.setCommentInfo(facadeImplMethod, getOpName(facadeImplMethod.getName()), facadeImplMethod.getParameters(),true);
+                    xCommons.setCommentInfo(facadeImplMethod, getOpName(facadeImplMethod.getName()) + tableDesc, facadeImplMethod.getParameters(), true);
                     FormatTools.addMethodWithBestPosition(controllerClazz, facadeImplMethod);
                 }
 
