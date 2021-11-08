@@ -24,7 +24,7 @@ public class XConverters {
         FullyQualifiedJavaType mapstructFullyQualifiedName = new FullyQualifiedJavaType("org.mapstruct.Mapper");
 
         Interface builderInterface = new Interface(builderFullyQualifiedName);
-        xCommons.setCommentInfo(builderInterface, builderFullyQualifiedName);
+        xCommons.setClassCommet(builderInterface, builderFullyQualifiedName, "");
         builderInterface.addImportedType(mapstructFullyQualifiedName);
         builderInterface.addImportedType(dataObjFullType);
         builderInterface.addImportedType(another);

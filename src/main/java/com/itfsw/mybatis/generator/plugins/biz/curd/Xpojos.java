@@ -44,7 +44,7 @@ public final class Xpojos {
         //#####################
         if (targetClassType == ClassType.domainEntity) {
             //添加注释
-            xCommons.setCommentInfo(targetClazz, "该类继承了DataObject，是个领域对象，主要是描述域属性及行为");
+            xCommons.setClassCommet(targetClazz, "该类继承了DataObject，是个领域对象，主要是描述域属性及行为", "");
             targetClazz.setSuperClass(dataObjFullType.getShortName());
             targetClazz.addImportedType(dataObjFullType);
         } else if (targetClassType == ClassType.domainAggregationDto) {

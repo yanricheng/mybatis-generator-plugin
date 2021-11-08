@@ -13,7 +13,14 @@ import org.mybatis.generator.api.GeneratedJavaFile;
 import org.mybatis.generator.api.IntrospectedTable;
 import org.mybatis.generator.api.JavaFormatter;
 import org.mybatis.generator.api.ShellCallback;
-import org.mybatis.generator.api.dom.java.*;
+import org.mybatis.generator.api.dom.java.CompilationUnit;
+import org.mybatis.generator.api.dom.java.Field;
+import org.mybatis.generator.api.dom.java.FullyQualifiedJavaType;
+import org.mybatis.generator.api.dom.java.Interface;
+import org.mybatis.generator.api.dom.java.JavaVisibility;
+import org.mybatis.generator.api.dom.java.Method;
+import org.mybatis.generator.api.dom.java.Parameter;
+import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.internal.DefaultShellCallback;
 
 import java.util.ArrayList;
@@ -22,7 +29,21 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.itfsw.mybatis.generator.plugins.biz.Constants.*;
+import static com.itfsw.mybatis.generator.plugins.biz.Constants.ADD;
+import static com.itfsw.mybatis.generator.plugins.biz.Constants.BASE_JAVA_DIR;
+import static com.itfsw.mybatis.generator.plugins.biz.Constants.CONTROLLER_SUBFIX;
+import static com.itfsw.mybatis.generator.plugins.biz.Constants.CONVERT_SUBFIX;
+import static com.itfsw.mybatis.generator.plugins.biz.Constants.DELETE;
+import static com.itfsw.mybatis.generator.plugins.biz.Constants.DO;
+import static com.itfsw.mybatis.generator.plugins.biz.Constants.DOMAIN_OBJ_EXCLUDE_FIELDS;
+import static com.itfsw.mybatis.generator.plugins.biz.Constants.DTO;
+import static com.itfsw.mybatis.generator.plugins.biz.Constants.GET;
+import static com.itfsw.mybatis.generator.plugins.biz.Constants.INSERT;
+import static com.itfsw.mybatis.generator.plugins.biz.Constants.MAPPER_SUBFIX;
+import static com.itfsw.mybatis.generator.plugins.biz.Constants.MODIFY;
+import static com.itfsw.mybatis.generator.plugins.biz.Constants.REMOVE;
+import static com.itfsw.mybatis.generator.plugins.biz.Constants.SELECT;
+import static com.itfsw.mybatis.generator.plugins.biz.Constants.UPDATE;
 
 /**
  * @author yrc
@@ -68,6 +89,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
     public List<GeneratedJavaFile> contextGenerateAdditionalJavaFiles(IntrospectedTable introspectedTable) {
 
         String tableDesc = introspectedTable.getTableConfigurationProperty("tableDesc");
+        String author = introspectedTable.getTableConfigurationProperty("author");
 
         if (javaFormatter == null) {
             javaFormatter = context.getJavaFormatter();
@@ -206,7 +228,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 String repositoryInterfaceFullyName = String.format("%s.%s", repositoryPackage, simpleClassName.replace(MAPPER_SUBFIX, "Repository"));
                 //定义接口
                 Interface repositoryInterface = new Interface(repositoryInterfaceFullyName);
-                xCommons.setCommentInfo(repositoryInterface, repositoryInterfaceFullyName);
+                xCommons.setClassCommet(repositoryInterface, tableDesc + repositoryInterface.getType().getShortName(), author);
                 Interface mapperInterface = (Interface) javaFile.getCompilationUnit();
 
                 repositoryInterface.getImportedTypes().addAll(mapperInterface.getImportedTypes().stream().filter(
@@ -257,7 +279,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 //定义实现
                 TopLevelClass repositoryImplClazz = new TopLevelClass(repositoryClassFullyName);
                 //添加注释
-                xCommons.setCommentInfo(repositoryImplClazz, repositoryClassFullyName);
+                xCommons.setClassCommet(repositoryImplClazz, tableDesc + repositoryImplClazz.getType().getShortName(), author);
                 //添加父亲接口
                 repositoryImplClazz.addSuperInterface(repositoryInterface.getType());
                 repositoryImplClazz.addAnnotation("@Repository");
@@ -286,7 +308,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 repositoryImplClazz.getStaticImports().addAll(mapperInterface.getStaticImports());
 
                 for (Method repMethod : repositoryInterface.getMethods()) {
-                    xCommons.setCommentInfo(repMethod, getOpName(repMethod.getName()) + tableDesc, repMethod.getParameters(), false);
+                    xCommons.seMethodCommet(repMethod, getOpName(repMethod.getName()) + tableDesc, repMethod.getParameters(), false, false);
                     List<Parameter> parameterList = repMethod.getParameters();
                     Parameter[] parameters = new Parameter[parameterList.size()];
                     for (int i = 0, size = repMethod.getParameters().size(); i < size; i++) {
@@ -323,7 +345,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
 //                    }
 
                     repImplMethod.addBodyLine(String.format("return %s.%s(%s);", simpleBeanName, repMethod.getName(), sbd));
-                    xCommons.setCommentInfo(repImplMethod, getOpName(repImplMethod.getName()) + tableDesc, repImplMethod.getParameters(), true);
+                    xCommons.seMethodCommet(repImplMethod, getOpName(repImplMethod.getName()) + tableDesc, repImplMethod.getParameters(), true, false);
 //                    commentGenerator.addGeneralMethodComment(implMethod, introspectedTable);
                     FormatTools.addMethodWithBestPosition(repositoryImplClazz, repImplMethod);
                 }
@@ -335,7 +357,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
 
                 Interface serviceInterface = new Interface(new FullyQualifiedJavaType(serviceFullyQualifiedName));
                 //添加注释
-                xCommons.setCommentInfo(serviceInterface, serviceFullyQualifiedName);
+                xCommons.setClassCommet(serviceInterface, tableDesc + serviceInterface.getType().getShortName(), author);
 
                 serviceInterface.getImportedTypes().addAll(repositoryInterface.getImportedTypes().stream().filter(
                         type -> !(type.getFullyQualifiedName().contains("Mapper")))
@@ -364,7 +386,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                             m.getReturnType(),
                             m.getParameters().toArray(new Parameter[m.getParameters().size()]));
                     srvMethod.setReturnType(m.getReturnType());
-                    xCommons.setCommentInfo(srvMethod, getOpName(srvMethod.getName()) + tableDesc, srvMethod.getParameters(), false);
+                    xCommons.seMethodCommet(srvMethod, getOpName(srvMethod.getName()) + tableDesc, srvMethod.getParameters(), false, false);
                     serviceInterface.addMethod(srvMethod);
                 }
 
@@ -375,7 +397,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 String serviceImplFullyQualifiedName = String.format("%s.%s", serviceImplPackage, simpleClassName.replace(MAPPER_SUBFIX, "ServiceImpl"));
                 TopLevelClass serviceImplClazz = new TopLevelClass(serviceImplFullyQualifiedName);
                 //添加注释
-                xCommons.setCommentInfo(serviceImplClazz, serviceImplFullyQualifiedName);
+                xCommons.setClassCommet(serviceImplClazz, tableDesc + serviceImplClazz.getType().getShortName(), author);
                 //添加父亲接口
                 serviceImplClazz.addSuperInterface(serviceInterface.getType());
                 serviceImplClazz.addAnnotation("@Service");
@@ -432,22 +454,44 @@ public class GenerateRepositoryPlugin extends BasePlugin {
 
                     srvImplMethod.addBodyLine(String.format("return %s.%s(%s);", repositoryBeanName, methodName, sbd));
 //                    commentGenerator.addGeneralMethodComment(implMethod, introspectedTable);
-                    xCommons.setCommentInfo(srvImplMethod, getOpName(srvImplMethod.getName()) + tableDesc, srvImplMethod.getParameters(), true);
+                    xCommons.seMethodCommet(srvImplMethod, getOpName(srvImplMethod.getName()) + tableDesc, srvImplMethod.getParameters(), true, false);
                     FormatTools.addMethodWithBestPosition(serviceImplClazz, srvImplMethod);
                 }
 
                 //#########################
                 //------------ facade 层定义
+                String domainName = introspectedTable.getMyBatis3JavaMapperType();
+                domainName = domainName.substring(domainName.lastIndexOf(".") + 1).replace("Mapper", "");
+                FullyQualifiedJavaType pageQueryType = new FullyQualifiedJavaType(String.format("%s.%s%s", dtoPackage, domainName, "PageQueryDto"));
+
+
                 String facadeFullyQualifiedName = String.format("%s.%s", facadePackage, simpleClassName.replace(MAPPER_SUBFIX, "Facade"));
                 String domainClassName = simpleClassName.replace(MAPPER_SUBFIX, "");
                 Interface facadeInterface = new Interface(new FullyQualifiedJavaType(facadeFullyQualifiedName));
                 //添加注释
-                xCommons.setCommentInfo(facadeInterface, facadeFullyQualifiedName);
+                xCommons.setClassCommet(facadeInterface, tableDesc + facadeInterface.getType().getShortName(), author);
                 FullyQualifiedJavaType dtoFullType = new FullyQualifiedJavaType(String.format("%s.%s", dtoPackage, simpleClassName.replace(MAPPER_SUBFIX, "DTO")));
                 facadeInterface.addImportedType(dtoFullType);
+                facadeInterface.addImportedType(pageQueryType);
                 facadeInterface.addImportedType(new FullyQualifiedJavaType("cn.com.servyou.xqy.framework.rpc.facade.SingleResult"));
+                facadeInterface.addImportedType(new FullyQualifiedJavaType("cn.com.servyou.finance.ecs.facade.base.BasePageResultDTO"));
+
+
+                //单独增加分页方法 ====== start
+                Parameter[] pageParameters = new Parameter[]{new Parameter(pageQueryType, FieldUtil.firstLower(pageQueryType.getShortName()))};
+                Method pageMethod = JavaElementGeneratorTools.generateMethod(
+                        "queryWithPage",
+                        JavaVisibility.PUBLIC,
+                        new FullyQualifiedJavaType(String.format("SingleResult<BasePageResultDTO<%s>>", dtoFullType.getShortName())),
+                        pageParameters);
+                facadeInterface.addMethod(pageMethod);
+                xCommons.seMethodCommet(pageMethod, getOpName(pageMethod.getName()) + tableDesc, pageMethod.getParameters(), false, true);
+                //单独增加分页方法 ====== end
 
                 for (Method m : serviceInterface.getMethods()) {
+                    if (m.getName().contains("page") || m.getName().contains("Page")) {
+                        continue;
+                    }
                     Parameter[] parameters = new Parameter[m.getParameters().size()];
                     for (int i = 0, size = m.getParameters().size(); i < size; i++) {
                         Parameter p = m.getParameters().get(i);
@@ -468,7 +512,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                             returnType,
                             parameters);
                     facadeInterface.addMethod(facadeMethod);
-                    xCommons.setCommentInfo(facadeMethod, getOpName(facadeMethod.getName()) + tableDesc, m.getParameters(), false);
+                    xCommons.seMethodCommet(facadeMethod, getOpName(facadeMethod.getName()) + tableDesc, m.getParameters(), false, true);
                 }
 
                 //----------------------
@@ -478,7 +522,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 String facadeImplFullyQualifiedName = String.format("%s.%s", facadeImplPackage, simpleClassName.replace(MAPPER_SUBFIX, "FacadeImpl"));
                 TopLevelClass facadeImplClazz = new TopLevelClass(facadeImplFullyQualifiedName);
                 //添加注释
-                xCommons.setCommentInfo(facadeImplClazz, facadeImplFullyQualifiedName);
+                xCommons.setClassCommet(facadeImplClazz, tableDesc + facadeImplClazz.getType().getShortName(), author);
                 //添加父亲接口
                 facadeImplClazz.addSuperInterface(facadeInterface.getType());
                 facadeImplClazz.addAnnotation("@Service");
@@ -487,7 +531,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 facadeImplClazz.addImportedType(new FullyQualifiedJavaType("org.springframework.stereotype.Service"));
                 facadeImplClazz.addImportedType(new FullyQualifiedJavaType("cn.com.servyou.xqy.framework.rpc.facadeimpl.ResultServiceCheckCallback"));
                 FullyQualifiedJavaType serviceTemplateFullType = new FullyQualifiedJavaType("cn.com.servyou.xqy.framework.rpc.facadeimpl.ServiceTemplate");
-                facadeInterface.addImportedType(serviceTemplateFullType);
+                facadeImplClazz.addImportedType(serviceTemplateFullType);
                 facadeImplClazz.getImportedTypes().addAll(facadeInterface.getImportedTypes());
                 facadeImplClazz.addImportedType(facadeInterface.getType());
                 facadeImplClazz.addImportedType(serviceInterface.getType());
@@ -518,6 +562,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 commentGenerator.addFieldComment(convertField, introspectedTable);
                 facadeImplClazz.addField(convertField);
                 facadeImplClazz.addImportedType(dtoConvertFullType);
+                facadeImplClazz.addImportedType(pageQueryType);
 
 
                 for (Method method : facadeInterface.getMethods()) {
@@ -536,36 +581,41 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                     implMethod.addAnnotation("@Override");
                     List<Parameter> params = method.getParameters();
 
-                    StringBuilder sbd = new StringBuilder();
+                    StringBuilder paramSbd = new StringBuilder();
                     for (Parameter p : params) {
-                        if (sbd.length() > 0) {
-                            sbd.append(",");
+                        if (paramSbd.length() > 0) {
+                            paramSbd.append(",");
                         }
                         if (implMethod.getName().contains("add") || implMethod.getName().contains("modify")) {
                             //authorDTOConvert.toEntity(author)
-                            sbd.append(String.format("%s(%s)", dtoConvertBeanName + ".toEntity", p.getName()));
+                            paramSbd.append(String.format("%s(%s)", dtoConvertBeanName + ".toEntity", p.getName()));
                         } else {
-                            sbd.append(p.getName());
+                            paramSbd.append(p.getName());
                         }
                     }
 
 
-                    implMethod.addBodyLine("return " + serviceTemplateBeanName + (implMethod.getName().startsWith("get") || implMethod.getName().startsWith("query") ? ".executeWithoutTx(" : ".executeWithTx("));
+                    implMethod.addBodyLine("return " + serviceTemplateBeanName + ((implMethod.getName().startsWith("get") || implMethod.getName().startsWith("query")) ? ".executeWithoutTx(" : ".executeWithTx("));
                     implMethod.addBodyLine(String.format("%s,new ResultServiceCheckCallback<%s>() {", "\"请补充业务描述！\"", method.getReturnType()));
                     implMethod.addBodyLine("@Override public void check() {}");
                     implMethod.addBodyLine(String.format("@Override public %s createDefaultResult() { return SingleResult.success(null); }", method.getReturnType()));
                     implMethod.addBodyLine(String.format("@Override public void executeService(%s result) {", method.getReturnType()));
+
                     String returnVal = null;
                     if (implMethod.getName().contains("get")) {
-                        //ecsUserBuilder.toEntity(ecsUserMapper.selectByUserId(userId));
-                        returnVal = String.format("%s(%s.%s(%s))", dtoConvertBeanName + ".toDto", serviceBeanName, method.getName(), sbd);
+                        returnVal = String.format("%s(%s.%s(%s))", dtoConvertBeanName + ".toDto", serviceBeanName, method.getName(), paramSbd);
+                        implMethod.addBodyLine(String.format("result.setEntity(%s);}});", returnVal));
+                    } else if (implMethod.getName().contains("page") || implMethod.getName().contains("Page")) {
+                        implMethod.addBodyLine("BasePageResultDTO<" + dtoFullType.getShortName() + "> resultDto = new BasePageResultDTO();");
+                        implMethod.addBodyLine("resultDto.setTotalCount(" + serviceBeanName + ".getPageCount(" + paramSbd + "));");
+                        implMethod.addBodyLine("resultDto.setPageData(" + dtoConvertBeanName + ".toDtoList(" + serviceBeanName + ".getPage(userMailPageQueryDto)));");
+                        implMethod.addBodyLine("result.setEntity(resultDto);}});");
                     } else {
-                        returnVal = String.format("%s.%s(%s)", serviceBeanName, method.getName(), sbd);
+                        returnVal = String.format("%s.%s(%s)", serviceBeanName, method.getName(), paramSbd);
+                        implMethod.addBodyLine(String.format("result.setEntity(%s);}});", returnVal));
                     }
 
-                    implMethod.addBodyLine(String.format("result.setEntity(%s);}});", returnVal));
-
-                    xCommons.setCommentInfo(implMethod, getOpName(implMethod.getName()) + tableDesc, implMethod.getParameters(), true);
+                    xCommons.seMethodCommet(implMethod, getOpName(implMethod.getName()) + tableDesc, implMethod.getParameters(), true, false);
                     FormatTools.addMethodWithBestPosition(facadeImplClazz, implMethod);
                 }
 
@@ -578,14 +628,14 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                 String controllerFullyQualifiedName = String.format("%s.%s", controllerPackage, controllerSimpleName);
                 TopLevelClass controllerClazz = new TopLevelClass(controllerFullyQualifiedName);
                 //添加注释
-                xCommons.setCommentInfo(controllerClazz, controllerFullyQualifiedName);
+                xCommons.setClassCommet(controllerClazz, tableDesc + controllerClazz.getType().getShortName(), author);
                 //添加父亲接口
                 controllerClazz.setSuperClass(new FullyQualifiedJavaType(parentControllerClass));
                 controllerClazz.addAnnotation("@Controller");
                 controllerClazz.addAnnotation("@ResponseBody");
                 controllerClazz.addAnnotation("@ReturnApiResponse");
                 controllerClazz.addAnnotation("@Validated");
-                controllerClazz.addAnnotation(String.format("@RequestMapping(%s)", "\"" + FieldUtil.firstLower(controllerSimpleName.replaceAll(MAPPER_SUBFIX, "")) + "\""));
+                controllerClazz.addAnnotation(String.format("@RequestMapping(%s)", "\"" + FieldUtil.firstLower(controllerSimpleName.replaceAll(CONTROLLER_SUBFIX, "")) + "\""));
                 //增加import
                 controllerClazz.addImportedType(new FullyQualifiedJavaType("cn.com.servyou.finance.ecs.common.web.ReturnApiResponse"));
                 controllerClazz.addImportedType(new FullyQualifiedJavaType("org.springframework.beans.factory.annotation.Autowired"));
@@ -619,7 +669,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
 
                     FullyQualifiedJavaType returnType = facadeMethod.getReturnType().getTypeArguments().get(0);
                     // parseValue 方法
-                    Method facadeImplMethod = JavaElementGeneratorTools.generateMethod(
+                    Method webMethod = JavaElementGeneratorTools.generateMethod(
                             facadeMethod.getName(),
                             JavaVisibility.PUBLIC,
                             returnType,
@@ -628,9 +678,9 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                             || facadeMethod.getName().startsWith("query")
                             || facadeMethod.getName().startsWith("list")
                             || facadeMethod.getName().startsWith("select")) {
-                        facadeImplMethod.addAnnotation("@GetMapping(\"" + facadeMethod.getName() + "\")");
+                        webMethod.addAnnotation("@GetMapping(\"" + facadeMethod.getName() + "\")");
                     } else {
-                        facadeImplMethod.addAnnotation("@PostMapping(\"" + facadeMethod.getName() + "\")");
+                        webMethod.addAnnotation("@PostMapping(\"" + facadeMethod.getName() + "\")");
                     }
 
                     List<Parameter> params = facadeMethod.getParameters();
@@ -642,11 +692,11 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                         }
                         sbd.append(p.getName());
                     }
-                    facadeImplMethod.addBodyLine(String.format("return %s.%s(%s).getEntity();", facadeBeanName, facadeMethod.getName(), sbd));
+                    webMethod.addBodyLine(String.format("return %s.%s(%s).getEntity();", facadeBeanName, facadeMethod.getName(), sbd));
 
 //                    commentGenerator.addGeneralMethodComment(m, introspectedTable);
-                    xCommons.setCommentInfo(facadeImplMethod, getOpName(facadeImplMethod.getName()) + tableDesc, facadeImplMethod.getParameters(), true);
-                    FormatTools.addMethodWithBestPosition(controllerClazz, facadeImplMethod);
+                    xCommons.seMethodCommet(webMethod, getOpName(webMethod.getName()) + tableDesc, webMethod.getParameters(), false, true);
+                    FormatTools.addMethodWithBestPosition(controllerClazz, webMethod);
                 }
 
                 //--------------------------
@@ -702,7 +752,11 @@ public class GenerateRepositoryPlugin extends BasePlugin {
         } else if (methodName.startsWith("update") || methodName.startsWith("edit") || methodName.startsWith("modify")) {
             return "修改";
         } else {
-            return "查询";
+            if (methodName.contains("page") || methodName.contains("Page")) {
+                return "分页查询";
+            } else {
+                return "查询";
+            }
         }
     }
 }

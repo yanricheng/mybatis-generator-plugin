@@ -4,6 +4,7 @@ import org.mybatis.generator.api.dom.java.JavaElement;
 import org.mybatis.generator.api.dom.java.JavaVisibility;
 import org.mybatis.generator.api.dom.java.Parameter;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -12,19 +13,25 @@ import java.util.List;
  */
 public class xCommons {
 
-    public static void setCommentInfo(JavaElement ele, String doc) {
+    public static void setClassCommet(JavaElement ele, String bizDesc, String author) {
         ele.setVisibility(JavaVisibility.PUBLIC);
         ele.addJavaDocLine("/**");
-        ele.addJavaDocLine(" * " + doc + "");
+        ele.addJavaDocLine(" * 业务描述：" + bizDesc + "");
+        ele.addJavaDocLine(" * @author " + author + "");
+        ele.addJavaDocLine(" * @date " + new Date().toLocaleString() + "");
         ele.addJavaDocLine(" */");
     }
 
-    public static void setCommentInfo(JavaElement ele, String desc, List<Parameter> params,boolean isImpl) {
+    public static void seMethodCommet(JavaElement ele, String desc, List<Parameter> params, boolean isImpl, boolean needBiz) {
         ele.setVisibility(JavaVisibility.PUBLIC);
         ele.addJavaDocLine("/**");
-        ele.addJavaDocLine(" * " + desc + "");
-        if(isImpl){
-            ele.addJavaDocLine(" * 请补充实现原理!!");
+        ele.addJavaDocLine(" * 业务场景： " + desc + "");
+        if (needBiz) {
+            ele.addJavaDocLine(" * 调用方： 请补充!");
+            ele.addJavaDocLine(" * 调用频次： 请补充!");
+        }
+        if (isImpl) {
+            ele.addJavaDocLine(" * 实现概述：请补充!");
         }
         for (Parameter param : params) {
             ele.addJavaDocLine(" * @param " + param.getName() + "");
