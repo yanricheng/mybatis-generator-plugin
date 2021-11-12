@@ -608,7 +608,7 @@ public class GenerateRepositoryPlugin extends BasePlugin {
                     } else if (implMethod.getName().contains("page") || implMethod.getName().contains("Page")) {
                         implMethod.addBodyLine("BasePageResultDTO<" + dtoFullType.getShortName() + "> resultDto = new BasePageResultDTO();");
                         implMethod.addBodyLine("resultDto.setTotalCount(" + serviceBeanName + ".getPageCount(" + paramSbd + "));");
-                        implMethod.addBodyLine("resultDto.setPageData(" + dtoConvertBeanName + ".toDtoList(" + serviceBeanName + ".getPage(userMailPageQueryDto)));");
+                        implMethod.addBodyLine("resultDto.setPageData(" + dtoConvertBeanName + ".toDtoList(" + serviceBeanName + ".getPage(" + paramSbd + ")));");
                         implMethod.addBodyLine("result.setEntity(resultDto);}});");
                     } else {
                         returnVal = String.format("%s.%s(%s)", serviceBeanName, method.getName(), paramSbd);
